@@ -1,3 +1,4 @@
+
 async function soumettreVers() {
   const input = document.getElementById("inputVers");
   const transcription = document.getElementById("transcription");
@@ -10,7 +11,6 @@ async function soumettreVers() {
   }
 
   transcription.innerText += `\n👤 Vous : ${versUtilisateur}`;
-
   input.value = "";
   input.disabled = true;
 
