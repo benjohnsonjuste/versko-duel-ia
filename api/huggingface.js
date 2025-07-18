@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const hfResponse = await fetch('https://api-inference.huggingface.co/models/gpt2', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer VOTRE_CLE_HUGGINGFACE`, // ⚠️ à remplacer
+        Authorization: `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`, // ⚠️ à remplacer
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ inputs: prompt, max_new_tokens: max_tokens || 60 }),
