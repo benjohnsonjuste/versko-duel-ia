@@ -1,75 +1,79 @@
-const HF_API = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2";
-const HF_TOKEN = "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"; // Remplace par ton vrai token si besoin
+let joueurActuel = 'humain';
+let transcription = '';
+let timerInterval;
 
-let texteFinal = "";
-let secondesRestantes = 60;
-let timer;
+function changerTour() {
+  joueurActuel = joueurActuel === 'humain' ? 'ia' : 'humain';
+  document.getElementById('joueurActuelLabel').textContent = joueurActuel === 'humain' ? 'Vous :' : 'IA :';
+  if (joueurActuel === 'ia') {
+    commencerMinuteur();
+    lancerReponseIA();
+  }
+}
 
-function startTimer() {
-  secondesRestantes = 60;
-  document.getElementById('timer').innerText = secondesRestantes;
-  clearInterval(timer);
-  timer = setInterval(() => {
-    secondesRestantes--;
-    document.getElementById('timer').innerText = secondesRestantes;
-    if (secondesRestantes <= 0) {
-      clearInterval(timer);
-      soumettreVers();
+function commencerMinuteur() {
+  clearInterval(timerInterval);
+  let tempsRestant = 60;
+  document.getElementById('timer').textContent = tempsRestant;
+
+  timerInterval = setInterval(() => {
+    tempsRestant--;
+    document.getElementById('timer').textContent = tempsRestant;
+    if (tempsRestant <= 0) {
+      clearInterval(timerInterval);
+      changerTour();
     }
   }, 1000);
 }
 
 async function soumettreVers() {
-  clearInterval(timer);
-  const input = document.getElementById("inputVers");
+  if (joueurActuel !== 'humain') return;
+
+  const input = document.getElementById('inputVers');
   const vers = input.value.trim();
   if (!vers) return;
 
-  input.disabled = true;
-  document.getElementById("submitBtn").disabled = true;
+  transcription += `👤 Vous : ${vers}\n`;
+  document.getElementById('transcription').textContent = transcription;
+  input.value = '';
+  changerTour();
+}
 
-  texteFinal += `👤 Moi : ${vers}\n`;
-  document.getElementById("transcription").innerText = texteFinal;
+async function lancerReponseIA() {
+  const theme = document.getElementById('theme').value;
+  const prompt = `${transcription}\n🤖 IA (thème : ${theme}) :`;
 
-  const theme = document.getElementById("theme").value;
-  const prompt = `Thème: ${theme}\nJoueur: ${vers}\nIA:`;
+  const reponseIA = await obtenirReponseIA(prompt);
+  transcription += `🤖 IA : ${reponseIA}\n`;
+  document.getElementById('transcription').textContent = transcription;
 
+  changerTour();
+}
+
+async function obtenirReponseIA(prompt) {
   try {
-    const res = await fetch(HF_API, {
+    const response = await fetch("https://versko-duel-ia.vercel.app/api/huggingface", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${HF_TOKEN}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        inputs: prompt,
-        parameters: { max_new_tokens: 60, temperature: 0.7 }
+        prompt: prompt,
+        max_tokens: 60
       })
     });
 
-    const data = await res.json();
-    let iaVers = "…";
-    if (Array.isArray(data) && data[0]?.generated_text) {
-      const texteGenere = data[0].generated_text;
-      iaVers = texteGenere.includes("IA:")
-        ? texteGenere.split("IA:")[1].trim()
-        : texteGenere.split("\n").slice(-1)[0].trim();
-    } else if (data?.generated_text) {
-      iaVers = data.generated_text;
+    const data = await response.json();
+
+    if (data.generated_text) {
+      return data.generated_text.trim();
+    } else {
+      return "IA muette";
     }
-
-    texteFinal += `🤖 Kitty : ${iaVers}\n\n`;
-
-  } catch (e) {
-    console.error("Erreur API HuggingFace :", e);
-    texteFinal += "⚠️ Erreur de réponse IA\n\n";
+  } catch (error) {
+    console.error("Erreur IA:", error);
+    return "Erreur de réponse IA";
   }
-
-  document.getElementById("transcription").innerText = texteFinal;
-  input.value = "";
-  input.disabled = false;
-  document.getElementById("submitBtn").disabled = false;
-  startTimer();
 }
 
-startTimer();
+window.onload = commencerMinuteur;
